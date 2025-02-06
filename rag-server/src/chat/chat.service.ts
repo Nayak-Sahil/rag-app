@@ -2,14 +2,20 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AzureChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly configService: ConfigService) {}
-
-  show(message: string) {
-    console.log(this.configService.get<string>('API_KEY'));
-    return message;
+  model : AzureChatOpenAI;
+  constructor(private readonly configService: ConfigService) {
+    this.model = new AzureChatOpenAI({
+      azureOpenAIApiKey: this.configService.get<string>('API_KEY'),
+      model: this.configService.get<string>('MODEL'),
+      azureOpenAIApiInstanceName: this.configService.get<string>('INSTANCE'),
+      azureOpenAIApiDeploymentName:
+        this.configService.get<string>('DEPLOYMENT'),
+      azureOpenAIApiVersion: this.configService.get<string>('API_VERSION'),
+    });
   }
 
   async chat(input: string) {
@@ -24,15 +30,19 @@ export class ChatService {
       text: input,
     });
 
-    const model = new AzureChatOpenAI({
-      azureOpenAIApiKey: this.configService.get<string>('API_KEY'),
-      model: 'gpt-4o',
-      azureOpenAIApiInstanceName: 'ibc-2025',
-      azureOpenAIApiDeploymentName: 'gpt-4o-interns-bootcamp-2025',
-      azureOpenAIApiVersion: '2024-08-01-preview',
-    });
+    const response = await this.model.invoke(promptValue);
+    return response.content as string;
+  }
 
-    const response = await model.invoke(promptValue);
+  async upload(file : Express.Multer.File) {
+    const filePath = file.path;
+    const loader = new PDFLoader(filePath);
+    const docs = await loader.load();
+
+    const prompt = `#### give me summary #### ${docs[0].pageContent}`
+
+    const response = await this.model.invoke(prompt);
+
     return response.content as string;
   }
 }
