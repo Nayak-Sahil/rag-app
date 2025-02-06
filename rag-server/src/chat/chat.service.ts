@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AzureChatOpenAI } from '@langchain/openai';
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-
+import { ChatPromptTemplate } from '@langchain/core/prompts';
 
 @Injectable()
 export class ChatService {
@@ -14,8 +13,16 @@ export class ChatService {
   }
 
   async chat(input: string) {
-    const systemTemplate = "Translate the following from English into {language}";
+    const systemTemplate = 'Always respond in GenZ way.';
 
+    const promptTemplate = ChatPromptTemplate.fromMessages([
+      ['system', systemTemplate],
+      ['user', '{text}'],
+    ]);
+
+    const promptValue = await promptTemplate.invoke({
+      text: input,
+    });
 
     const model = new AzureChatOpenAI({
       azureOpenAIApiKey: this.configService.get<string>('API_KEY'),
@@ -25,7 +32,7 @@ export class ChatService {
       azureOpenAIApiVersion: '2024-08-01-preview',
     });
 
-    const response = await model.invoke([input]);
+    const response = await model.invoke(promptValue);
     return response.content as string;
   }
 }
