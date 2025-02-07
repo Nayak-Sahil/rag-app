@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AzureChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import { EmbeddingService } from '../embedding/embedding.service';
 
 @Injectable()
 export class ChatService {
-  model : AzureChatOpenAI;
-  constructor(private readonly configService: ConfigService) {
+  model: AzureChatOpenAI;
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly embeddingService: EmbeddingService,
+  ) {
     this.model = new AzureChatOpenAI({
       azureOpenAIApiKey: this.configService.get<string>('API_KEY'),
       model: this.configService.get<string>('MODEL'),
@@ -34,15 +38,14 @@ export class ChatService {
     return response.content as string;
   }
 
-  async upload(file : Express.Multer.File) {
-    const filePath = file.path;
-    const loader = new PDFLoader(filePath);
-    const docs = await loader.load();
+  upload(file: Express.Multer.File) {
+    this.embeddingService.insertEmbedded(file);
 
-    const prompt = `#### give me summary #### ${docs[0].pageContent}`
+    // const prompt = `#### give me summary #### ${docs[0].pageContent}`;
 
-    const response = await this.model.invoke(prompt);
+    // const response = await this.model.invoke(prompt);
 
-    return response.content as string;
+    // return response.content as string;
+    return '';
   }
 }
