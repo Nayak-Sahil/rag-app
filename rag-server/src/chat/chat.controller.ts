@@ -14,6 +14,11 @@ import { diskStorage } from 'multer';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
+  @Get('/rag')
+  getReplyWithRag(@Query('input') message: string) {
+    return this.chatService.getReplyWithRag(message);
+  }
+
   @Get('')
   chat(@Query('input') message: string) {
     return this.chatService.chat(message);

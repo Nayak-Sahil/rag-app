@@ -22,9 +22,10 @@ export class ChatService {
     });
   }
 
-  async chat(input: string) {
-    const systemTemplate = 'Always respond in GenZ way.';
-
+  async chat(
+    input: string,
+    systemTemplate: string = 'Always respond in GenZ way.',
+  ) {
     const promptTemplate = ChatPromptTemplate.fromMessages([
       ['system', systemTemplate],
       ['user', '{text}'],
@@ -39,13 +40,23 @@ export class ChatService {
   }
 
   upload(file: Express.Multer.File) {
-    this.embeddingService.insertEmbedded(file);
+    return this.embeddingService.insertEmbedded(file);
 
     // const prompt = `#### give me summary #### ${docs[0].pageContent}`;
 
     // const response = await this.model.invoke(prompt);
 
     // return response.content as string;
-    return '';
+  }
+
+  async getReplyWithRag(input: string) {
+    const similarDocs = await this.embeddingService.getSimilarDocs(input);
+    const systemTemplate = `You Have This Context From Which You Have To Take Reference And Answer User Query. 
+    Don't Use Any External Resources.
+     If you don't find the query in context just reply that 'you are unable to answer this type of query.'
+      Never ever mention that you have some prebuilt context.`;
+    const context = `#Context Start# \n ${similarDocs[0].pageContent} \n #Context End#`;
+    const systemPrompt = systemTemplate + context;
+    return this.chat(input, systemPrompt);
   }
 }
